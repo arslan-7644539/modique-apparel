@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { formatOriginalPrice, formatPrice } from "@/utils/utils";
 
 // ProductCard component for displaying product grid with configurable columns and interactions
 const ProductCard = ({
@@ -49,25 +51,28 @@ const ProductCard = ({
         {products.map((product, index) => (
           // Individual product card with hover effects
           <div
-            key={product.id || index}
+            key={product?.id || index}
             className="bg-white rounded-lg  transition-all duration-300 cursor-pointer group w-full"
             onClick={() => onProductClick?.(product)}
           >
             {/* Product image container with aspect ratio */}
             <div
-              onClick={() => navigateToDetailPage(product.id || index)}
+              onClick={() => navigateToDetailPage(product?.id || index)}
               className="relative overflow-hidden rounded-t-lg aspect-[3/4] md:aspect-[4/5]"
             >
-              <img
-                src={product.image}
-                alt={product.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              <Image
+                src={product?.image || product?.images[0]}
+                alt={product?.title || "Product image"}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                priority={index < 4} // Prioritize first 4 images for faster loading
               />
 
               {/* Optional badge display */}
-              {product.badge && (
+              {product?.badge && (
                 <div className="absolute bottom-3 left-6 bg-white text-black text-xs px-2 py-1 rounded font-medium">
-                  {product.badge}
+                  {product?.badge}
                 </div>
               )}
 
@@ -89,7 +94,7 @@ const ProductCard = ({
             <div className="p-3 sm:p-4 flex flex-col gap-0 items-center">
               {/* Product Title */}
               <h3 className="font-medium text-gray-800 text-sm md:text-base mb-1 line-clamp-2">
-                {product.title}
+                {product?.title}
               </h3>
 
               {/* Star Ratings */}
@@ -110,13 +115,14 @@ const ProductCard = ({
               {/* Price Section */}
               <div className="flex items-center gap-2">
                 <span className="text-black font-bold text-sm md:text-base">
-                  PKR {product.price}
+                  {formatPrice(product?.price)}
                 </span>
-                {product.originalPrice && (
-                  <span className="text-gray-500 line-through text-xs">
-                    PKR {product.originalPrice}
-                  </span>
-                )}
+                {product?.originalPrice &&
+                  formatOriginalPrice(product?.originalPrice) && (
+                    <span className="text-gray-500 line-through text-xs">
+                      {formatOriginalPrice(product?.originalPrice)}
+                    </span>
+                  )}
               </div>
             </div>
           </div>

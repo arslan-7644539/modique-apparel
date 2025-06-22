@@ -1,15 +1,23 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { ChevronDown, CreditCard, X } from "lucide-react";
 import DiscountModal from "@/components/DiscountModal";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
+import { ProductsContext } from "@/components/context/product-provider";
+import { useParams } from "next/navigation";
 
 const CheckoutPage = () => {
+  const param = useParams();
+  const id = param.id;
+  const { particulatProduct } = useContext(ProductsContext);
+  // -------------------------------
   const { enqueueSnackbar } = useSnackbar();
   const [showModal, setShowModal] = useState(false);
+  const [product, setProduct] = useState([]);
+  console.log("🚀 ~ CheckoutPage ~ product:", product);
 
   // ------------------------------------------------------
   const schema = z
@@ -128,7 +136,8 @@ const CheckoutPage = () => {
   const watchedPaymentMethod = watch("paymentMethod");
 
   const onSubmit = async (data) => {
-    console.log("🚀 ~ onSubmit ~ data:", data);
+    debugger;
+
     try {
       console.log("Form is submitted", data);
 
@@ -155,6 +164,33 @@ const CheckoutPage = () => {
   const handleSubmitDiscount = () => {
     setShowModal(false);
   };
+
+  // fetching the product details from context
+  useEffect(() => {
+    const getProduct = () => {
+      try {
+        // setLoading(true);
+        // Convert string ID to number
+        const demoPruduct = particulatProduct(parseInt(id));
+        console.log("🚀 ~ getProduct ~ demoPruduct:", demoPruduct);
+        // ✅ Check if product exists
+        if (!demoPruduct) {
+          console.warn("Product not found for ID:", id);
+          // Handle product not found case
+        }
+        setProduct(demoPruduct);
+        // setLoading(false); // ✅ Set loading to false on success
+      } catch (error) {
+        console.log("🚀 ~ getProduct ~ error:", error);
+        // setLoading(false);
+      }
+    };
+
+    if (id) {
+      // ✅ Only run if ID exists
+      getProduct();
+    }
+  }, [id, particulatProduct]); // ✅ Include both dependencies
 
   const contactInfo = (
     <FormProvider {...methods}>
@@ -460,7 +496,7 @@ const CheckoutPage = () => {
         <div className="flex items-center space-x-4 mb-6">
           <div className="w-20 h-20 rounded-lg flex items-center justify-center relative">
             <img
-              src="https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-6-2023-12-13_13_08_30.jpeg"
+              src={product?.images?.[0]}
               alt="selected-product-image"
               className="w-full h-full object-cover rounded-lg"
             />
@@ -480,7 +516,7 @@ const CheckoutPage = () => {
         <div className="space-y-4 border-t pt-4">
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Subtotal</span>
-            <span className="font-medium">Rs 49,750.00</span>
+            <span className="font-medium">{product?.price} </span>
           </div>
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Shipping</span>
@@ -488,7 +524,7 @@ const CheckoutPage = () => {
           </div>
           <div className="flex justify-between text-lg font-semibold py-2">
             <span>Total</span>
-            <span>Rs 49,750.00</span>
+            <span>{product?.price}</span>
           </div>
         </div>
       </div>

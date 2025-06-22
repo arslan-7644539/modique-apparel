@@ -1,11 +1,15 @@
 "use client";
 import ProductCard from "@/components/sections/ProductCard";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { ChevronDown, Filter, X } from "lucide-react";
 import FilterSidebar from "@/components/FilterSidebar";
+import { ProductsContext } from "@/components/context/product-provider";
 
 const ProductListingPage = () => {
+  // Importing the ProductsContext to access product data
+    const { productData } = useContext(ProductsContext);
+  // Extracting the title from the URL parameters
   const params = useParams();
   const rawTitle = params.title;
   const title = rawTitle && decodeURIComponent(rawTitle);
@@ -20,54 +24,54 @@ const ProductListingPage = () => {
   });
 
   // Sample products data
-  const sampleProducts = [
-    {
-      id: 4,
-      image:
-        "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-8-2023-12-13_13_08_30.jpeg",
-      title: "Elegant White Dress",
-      price: "1,500",
-      badge: "BEST SELLER",
-    },
-    {
-      id: 5,
-      image:
-        "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-6-2023-12-13_13_08_30.jpeg",
-      title: "Floral White Dress",
-      price: "1,500",
-      badge: "BEST SELLER",
-    },
-    {
-      id: 6,
-      image:
-        "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-0-2023-12-13_13_08_30.jpeg",
-      title: "Black Geometric Suit",
-      price: "2,307.00",
-    },
-    {
-      id: 1,
-      image:
-        "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-6-2023-12-13_13_08_30.jpeg",
-      title: "Floral White Dress",
-      price: "1,500",
-      badge: "BEST SELLER",
-    },
-    {
-      id: 2,
-      image:
-        "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-0-2023-12-13_13_08_30.jpeg",
-      title: "Black Geometric Suit",
-      price: "2,307.00",
-    },
-    {
-      id: 3,
-      image:
-        "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-1-2023-12-13_13_08_30.jpeg",
-      title: "Yellow White Suit",
-      price: "1,500",
-      badge: "HOT",
-    },
-  ];
+  // const sampleProducts = [
+  //   {
+  //     id: 4,
+  //     image:
+  //       "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-8-2023-12-13_13_08_30.jpeg",
+  //     title: "Elegant White Dress",
+  //     price: "1,500",
+  //     badge: "BEST SELLER",
+  //   },
+  //   {
+  //     id: 5,
+  //     image:
+  //       "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-6-2023-12-13_13_08_30.jpeg",
+  //     title: "Floral White Dress",
+  //     price: "1,500",
+  //     badge: "BEST SELLER",
+  //   },
+  //   {
+  //     id: 6,
+  //     image:
+  //       "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-0-2023-12-13_13_08_30.jpeg",
+  //     title: "Black Geometric Suit",
+  //     price: "2,307.00",
+  //   },
+  //   {
+  //     id: 1,
+  //     image:
+  //       "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-6-2023-12-13_13_08_30.jpeg",
+  //     title: "Floral White Dress",
+  //     price: "1,500",
+  //     badge: "BEST SELLER",
+  //   },
+  //   {
+  //     id: 2,
+  //     image:
+  //       "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-0-2023-12-13_13_08_30.jpeg",
+  //     title: "Black Geometric Suit",
+  //     price: "2,307.00",
+  //   },
+  //   {
+  //     id: 3,
+  //     image:
+  //       "https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-1-2023-12-13_13_08_30.jpeg",
+  //     title: "Yellow White Suit",
+  //     price: "1,500",
+  //     badge: "HOT",
+  //   },
+  // ];
 
   const sortOptions = [
     { value: "featured", label: "Featured" },
@@ -169,7 +173,7 @@ const ProductListingPage = () => {
         {/* Product Grid */}
         <div className="flex-1 p-6">
           <ProductCard
-            products={sampleProducts}
+            products={productData}
             columns={3}
             onProductClick={handleProductClick}
             onAddToCart={handleAddToCart}
