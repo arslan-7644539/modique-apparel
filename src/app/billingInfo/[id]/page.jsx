@@ -37,26 +37,66 @@ const CheckoutPage = () => {
       paymentMethod: z.enum(["cod", "card"], {
         required_error: "Please select a payment method",
       }),
-      cardNumber: z.coerce.number().optional(),
+      cardNumber: z
+        .union([
+          z.string().min(1, "Card number is required"),
+          z.number().min(1, "Card number is required"),
+        ])
+        .optional(),
       expiryDate: z.string().optional(),
       securityCode: z.string().optional(),
       nameOnCard: z.string().optional(),
     })
+    // ✅ Card Number validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
-          return (
-            data.cardNumber &&
-            data.expiryDate &&
-            data.securityCode &&
-            data.nameOnCard
-          );
+          return data.cardNumber && data.cardNumber.toString().length > 0;
         }
         return true; // cod selected to ye required nahi
       },
       {
         message: "All card details are required when card is selected",
-        // path: ["selectedCard"], // error show at this field
+        path: ["cardNumber"], // error show at this field
+      }
+    )
+    // ✅ Expiry Date validation
+    .refine(
+      (data) => {
+        if (data.paymentMethod === "card") {
+          return data.expiryDate && data.expiryDate.trim().length > 0;
+        }
+        return true;
+      },
+      {
+        message: "Expiry date is required",
+        path: ["expiryDate"],
+      }
+    )
+    // ✅ Security Code validation
+    .refine(
+      (data) => {
+        if (data.paymentMethod === "card") {
+          return data.securityCode && data.securityCode.trim().length > 0;
+        }
+        return true;
+      },
+      {
+        message: "Security code is required",
+        path: ["securityCode"],
+      }
+    )
+    // ✅ Name on Card validation
+    .refine(
+      (data) => {
+        if (data.paymentMethod === "card") {
+          return data.nameOnCard && data.nameOnCard.trim().length > 0;
+        }
+        return true;
+      },
+      {
+        message: "Name on card is required",
+        path: ["nameOnCard"],
       }
     );
 
@@ -96,6 +136,19 @@ const CheckoutPage = () => {
 
   const onSubmit = async (data) => {
     try {
+      if (data.paymentMethod === "card") {
+        if (
+          !data.cardNumber ||
+          !data.expiryDate ||
+          !data.securityCode ||
+          !data.nameOnCard
+        ) {
+          enqueueSnackbar("Please fill in all the card details to proceed.", {
+            variant: "error",
+          });
+          // return;
+        }
+      }
       console.log("form is submitted", data);
       reset();
       enqueueSnackbar("Order Placed Successfully!", {
@@ -103,10 +156,14 @@ const CheckoutPage = () => {
         autoHideDuration: 3000, // 3 seconds
       });
       // Enjoy a discount on your first purchase!
-      handleOpen();
+      if (data.paymentMethod === "card") {
+        handleOpen(); // ✅ only open DiscountModal if card is selected
+      }
     } catch (error) {
-      console.log("🚀 ~ onSubmit ~ error:", error);
-      enqueueSnackbar(errorMessage, { variant: "error" });
+      console.log("🚀 ~ onSubmit ~ error: Pleas try again", error);
+      // enqueueSnackbar("onSubmit ~ error: Pleas try again", {
+      //   variant: "error",
+      // });
     }
   };
 
@@ -295,11 +352,6 @@ const CheckoutPage = () => {
                       CASH ON DELIVERY
                     </label>
                   </div>
-                  {/* {errors.paymentMethod && (
-                    <p className="text-red-500">
-                      {errors.paymentMethod.message}
-                    </p>
-                  )} */}
                 </div>
 
                 {/* Credit Card */}
@@ -336,11 +388,6 @@ const CheckoutPage = () => {
                       ></img>
                     </div>
                   </div>
-                  {/* {errors.paymentMethod && (
-                    <p className="text-red-500">
-                      {errors.paymentMethod.message}
-                    </p>
-                  )} */}
                 </div>
 
                 {/* cred card info  */}
@@ -420,7 +467,7 @@ const CheckoutPage = () => {
           <button
             disabled={isSubmitting}
             type="submit"
-            className="w-full bg-black text-white py-4 rounded-md font-semibold hover:bg-gray-800 transition-colors"
+            className="w-full bg-black text-white py-4 rounded-md font-semibold hover:bg-gray-800 transition-colors cursor-pointer"
           >
             {isSubmitting ? "PROCESSING..." : "PAY NOW"}
           </button>
