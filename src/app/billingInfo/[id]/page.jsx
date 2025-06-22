@@ -4,63 +4,53 @@ import { ChevronDown, CreditCard, X } from "lucide-react";
 import DiscountModal from "@/components/DiscountModal";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FormProvider, useForm } from "react-hook-form";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 
 const CheckoutPage = () => {
   const { enqueueSnackbar } = useSnackbar();
-  // ----------------------------------
-  const [selectedPayment, setSelectedPayment] = useState("card");
   const [showModal, setShowModal] = useState(false);
-  const [discount, setDiscount] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState("Country/Region");
-  const [selectedCard, setSelectedCard] = useState("Card Number");
 
   // ------------------------------------------------------
   const schema = z
     .object({
       email: z.string().email("Invalid email address"),
-      country: z.enum(
-        ["United States", "Canada", "United Kingdom", "Australia"],
-        { errorMap: () => ({ message: "Please select a country" }) }
-      ),
-      firstName: z.string().min(1, "first name is required"),
-      lastName: z.string().min(1, "last name is required"),
-      address: z.string().min(1, "address field is required"),
+      country: z.string().min(1, "Please select a country"),
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      address: z.string().min(1, "Address field is required"),
       whatsapp: z
         .string()
         .min(10, "Phone number must be at least 10 digits")
-        .regex(/^[0-9]+$/, "Phone number must contain only digits"),
-      city: z.string().min(1, "city is required"),
-      postalCode: z.coerce.number().min(1, "postal code is required"),
-      // for payment methd
+        .regex(
+          /^[0-9+\s-]+$/,
+          "Phone number must contain only digits, +, spaces, and hyphens"
+        ),
+      city: z.string().min(1, "City is required"),
+      postalCode: z.string().min(1, "Postal code is required"),
+      // for payment method
       paymentMethod: z.enum(["cod", "card"], {
         required_error: "Please select a payment method",
       }),
-      cardNumber: z
-        .union([
-          z.string().min(1, "Card number is required"),
-          z.number().min(1, "Card number is required"),
-        ])
-        .optional(),
+      cardNumber: z.string().optional(),
       expiryDate: z.string().optional(),
       securityCode: z.string().optional(),
       nameOnCard: z.string().optional(),
     })
-    // ✅ Card Number validation
+    // Card Number validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
-          return data.cardNumber && data.cardNumber.toString().length > 0;
+          return data.cardNumber && data.cardNumber.trim().length >= 13;
         }
-        return true; // cod selected to ye required nahi
+        return true;
       },
       {
-        message: "All card details are required when card is selected",
-        path: ["cardNumber"], // error show at this field
+        message: "Card number must be at least 13 digits",
+        path: ["cardNumber"],
       }
     )
-    // ✅ Expiry Date validation
+    // Expiry Date validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
@@ -73,20 +63,20 @@ const CheckoutPage = () => {
         path: ["expiryDate"],
       }
     )
-    // ✅ Security Code validation
+    // Security Code validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
-          return data.securityCode && data.securityCode.trim().length > 0;
+          return data.securityCode && data.securityCode.trim().length >= 3;
         }
         return true;
       },
       {
-        message: "Security code is required",
+        message: "Security code must be at least 3 digits",
         path: ["securityCode"],
       }
     )
-    // ✅ Name on Card validation
+    // Name on Card validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
@@ -110,7 +100,7 @@ const CheckoutPage = () => {
       whatsapp: "",
       city: "",
       postalCode: "",
-      paymentMethod: "",
+      paymentMethod: "cod",
       cardNumber: "",
       expiryDate: "",
       securityCode: "",
@@ -122,8 +112,8 @@ const CheckoutPage = () => {
   const methods = useForm({
     resolver: zodResolver(schema),
     defaultValues,
-    mode: "onSubmit", // Change to onSubmit to prevent double validation
-    reValidateMode: "onChange", // Only revalidate on change
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
 
   const {
@@ -131,46 +121,38 @@ const CheckoutPage = () => {
     watch,
     handleSubmit,
     register,
+    control,
     formState: { errors, isSubmitting },
   } = methods;
 
+  const watchedPaymentMethod = watch("paymentMethod");
+
   const onSubmit = async (data) => {
+    console.log("🚀 ~ onSubmit ~ data:", data);
     try {
-      if (data.paymentMethod === "card") {
-        if (
-          !data.cardNumber ||
-          !data.expiryDate ||
-          !data.securityCode ||
-          !data.nameOnCard
-        ) {
-          enqueueSnackbar("Please fill in all the card details to proceed.", {
-            variant: "error",
-          });
-          // return;
-        }
-      }
-      console.log("form is submitted", data);
-      reset();
+      console.log("Form is submitted", data);
+
       enqueueSnackbar("Order Placed Successfully!", {
         variant: "success",
-        autoHideDuration: 3000, // 3 seconds
+        autoHideDuration: 3000,
       });
-      // Enjoy a discount on your first purchase!
+
       if (data.paymentMethod === "card") {
-        handleOpen(); // ✅ only open DiscountModal if card is selected
+        handleOpen();
       }
+
+      reset();
     } catch (error) {
-      console.log("🚀 ~ onSubmit ~ error: Pleas try again", error);
-      // enqueueSnackbar("onSubmit ~ error: Pleas try again", {
-      //   variant: "error",
-      // });
+      console.log("🚀 ~ onSubmit ~ error: Please try again", error);
+      enqueueSnackbar("Error occurred. Please try again", {
+        variant: "error",
+      });
     }
   };
 
   const handleOpen = () => setShowModal(true);
   const handleClose = () => setShowModal(false);
   const handleSubmitDiscount = () => {
-    // alert("Discount Claimed!");
     setShowModal(false);
   };
 
@@ -184,7 +166,6 @@ const CheckoutPage = () => {
             <input
               {...register("email")}
               type="email"
-              name="email"
               placeholder="Email"
               className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -213,7 +194,9 @@ const CheckoutPage = () => {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 pointer-events-none" />
                 {errors?.country && (
-                  <p className="text-red-500">{errors?.country?.message}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors?.country?.message}
+                  </p>
                 )}
               </div>
 
@@ -223,24 +206,26 @@ const CheckoutPage = () => {
                   <input
                     {...register("firstName")}
                     type="text"
-                    name="firstName"
                     placeholder="First Name"
-                    className="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {errors?.firstName && (
-                    <p className="text-red-500">{errors?.firstName?.message}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors?.firstName?.message}
+                    </p>
                   )}
                 </div>
                 <div>
                   <input
                     {...register("lastName")}
                     type="text"
-                    name="lastName"
                     placeholder="Last Name"
-                    className="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {errors?.lastName && (
-                    <p className="text-red-500">{errors?.lastName?.message}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors?.lastName?.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -250,7 +235,6 @@ const CheckoutPage = () => {
                 <input
                   {...register("address")}
                   type="text"
-                  name="address"
                   placeholder="Address"
                   className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -263,11 +247,9 @@ const CheckoutPage = () => {
 
               {/* Whatsapp number */}
               <div>
-                {" "}
                 <input
                   {...register("whatsapp")}
                   type="text"
-                  name="whatsapp"
                   placeholder="Whatsapp (format: +XX XXX XXXXXXX)"
                   className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -284,9 +266,8 @@ const CheckoutPage = () => {
                   <input
                     {...register("city")}
                     type="text"
-                    name="city"
                     placeholder="City"
-                    className="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {errors.city && (
                     <p className="text-red-500 text-sm mt-1">
@@ -295,14 +276,12 @@ const CheckoutPage = () => {
                   )}
                 </div>
 
-                {/* postal code */}
                 <div>
                   <input
                     {...register("postalCode")}
                     type="text"
-                    name="postalCode"
                     placeholder="Postal Code"
-                    className="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   {errors.postalCode && (
                     <p className="text-red-500 text-sm mt-1">
@@ -334,132 +313,130 @@ const CheckoutPage = () => {
           </div>
 
           {/* Payment Section */}
-          <div>
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Payment</h2>
-              <div className="space-y-4">
-                {/* Cash on Delivery */}
-                <div className="border border-gray-300 bg-[#F9F9F9] rounded-md p-4">
-                  <div className="flex items-center">
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Payment</h2>
+            <div className="space-y-4">
+              {/* Cash on Delivery */}
+              <div className="border border-gray-300 bg-[#F9F9F9] rounded-md p-4">
+                <div className="flex items-center">
+                  <input
+                    {...register("paymentMethod")}
+                    type="radio"
+                    id="cod"
+                    value="cod"
+                    className="mr-3"
+                  />
+                  <label htmlFor="cod" className="font-medium">
+                    CASH ON DELIVERY
+                  </label>
+                </div>
+              </div>
+
+              {/* Credit Card */}
+              <div className="border border-gray-300 bg-[#F9F9F9] rounded-md p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center flex-1">
                     <input
                       {...register("paymentMethod")}
                       type="radio"
-                      id="cod"
-                      value="cod"
+                      id="card"
+                      value="card"
                       className="mr-3"
                     />
-                    <label htmlFor="cod" className="font-medium">
-                      CASH ON DELIVERY
+                    <label htmlFor="card" className="font-medium">
+                      <span className="whitespace-nowrap">
+                        CREDIT CARD / DEBIT CARD
+                      </span>
+                      <span className="whitespace-nowrap text-sm text-gray-500 block">
+                        (for international customers only)
+                      </span>
                     </label>
                   </div>
-                </div>
 
-                {/* Credit Card */}
-                <div className="border border-gray-300 bg-[#F9F9F9] rounded-md p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center flex-1">
-                      <input
-                        {...register("paymentMethod")}
-                        type="radio"
-                        id="card"
-                        className="mr-3"
-                        value="card"
-                      />
-                      <label htmlFor="card" className="font-medium">
-                        <span className="whitespace-nowrap">
-                          CREDIT CARD / DEBIT CARD
-                        </span>
-                        <span className="whitespace-nowrap text-sm text-gray-500 block">
-                          (for international customers only)
-                        </span>
-                      </label>
-                    </div>
-
-                    <div className="flex space-x-2 ml-4">
-                      <img
-                        src="/visa-icon.svg"
-                        alt="visa-card"
-                        className="w-8 h-5  rounded"
-                      ></img>
-                      <img
-                        src="/masterCard-icon.svg"
-                        alt="masterCard-icon"
-                        className="w-8 h-5 rounded"
-                      ></img>
-                    </div>
+                  <div className="flex space-x-2 ml-4">
+                    <img
+                      src="/visa-icon.svg"
+                      alt="visa-card"
+                      className="w-8 h-5 rounded"
+                    />
+                    <img
+                      src="/masterCard-icon.svg"
+                      alt="masterCard-icon"
+                      className="w-8 h-5 rounded"
+                    />
                   </div>
                 </div>
-
-                {/* cred card info  */}
-                {watch("paymentMethod") === "card" && (
-                  <div>
-                    <div className="space-y-4">
-                      {/* Card Number Dropdown */}
-
-                      {/* ------------ */}
-                      <input
-                        {...register("cardNumber")}
-                        type="text"
-                        name="cardNumber"
-                        placeholder="Card Number"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {errors?.cardNumber && (
-                        <p className="text-red-500">
-                          {errors?.cardNumber?.message}
-                        </p>
-                      )}
-
-                      {/* Expiry and Security Code */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input
-                          {...register("expiryDate")}
-                          type="text"
-                          name="expiryDate"
-                          placeholder="Expiry Date"
-                          className="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        {errors?.expiryDate && (
-                          <p className="text-red-500">
-                            {errors?.expiryDate?.message}
-                          </p>
-                        )}
-
-                        {/* ---------------------- */}
-                        <input
-                          {...register("securityCode")}
-                          type="text"
-                          name="securityCode"
-                          placeholder="Security Code"
-                          className="px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        {errors?.securityCode && (
-                          <p className="text-red-500">
-                            {errors?.securityCode?.message}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Name on Card */}
-                      <input
-                        {...register("nameOnCard")}
-                        type="text"
-                        name="nameOnCard"
-                        placeholder="Name on Card"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      {errors?.nameOnCard && (
-                        <p className="text-red-500">
-                          {errors?.nameOnCard?.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
+
+              {/* Card fields */}
+              {watchedPaymentMethod === "card" && (
+                <div className="space-y-4">
+                  <div>
+                    <input
+                      {...register("cardNumber")}
+                      type="text"
+                      placeholder="Card Number"
+                      maxLength="19"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {errors?.cardNumber && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors?.cardNumber?.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <input
+                        {...register("expiryDate")}
+                        type="text"
+                        placeholder="Expiry Date: MM/YY"
+                        maxLength="5"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      {errors?.expiryDate && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors?.expiryDate?.message}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        {...register("securityCode")}
+                        type="text"
+                        placeholder="Security Code : CVV"
+                        maxLength="4"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      {errors?.securityCode && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors?.securityCode?.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <input
+                      {...register("nameOnCard")}
+                      type="text"
+                      placeholder="Name on Card"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {errors?.nameOnCard && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors?.nameOnCard?.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             {errors.paymentMethod && (
-              <p className="text-red-500">{errors.paymentMethod.message}</p>
+              <p className="text-red-500 text-sm mt-2">
+                {errors.paymentMethod.message}
+              </p>
             )}
           </div>
 
@@ -467,7 +444,7 @@ const CheckoutPage = () => {
           <button
             disabled={isSubmitting}
             type="submit"
-            className="w-full bg-black text-white py-4 rounded-md font-semibold hover:bg-gray-800 transition-colors cursor-pointer"
+            className="w-full bg-black text-white py-4 rounded-md font-semibold hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "PROCESSING..." : "PAY NOW"}
           </button>
@@ -478,43 +455,37 @@ const CheckoutPage = () => {
 
   const orderDetails = (
     <div className="bg-gray-100 rounded-lg p-6">
-      <div className="  p-6 ">
+      <div className="p-6">
         {/* Product Item */}
         <div className="flex items-center space-x-4 mb-6">
-          <div className="w-20 h-20  rounded-lg flex items-center justify-center relative">
+          <div className="w-20 h-20 rounded-lg flex items-center justify-center relative">
             <img
               src="https://maajisafashion.com/images/product/sub_images/2023/12/hermitage-roz-mehar-pakistani-style-cotton-ladies-suit-supplier-2023-6-2023-12-13_13_08_30.jpeg"
               alt="selected-product-image"
               className="w-full h-full object-cover rounded-lg"
             />
-            {/* total lenth of order */}
             <span className="absolute -top-2 -right-2 bg-gray-600/90 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
               1
             </span>
           </div>
           <div className="flex-1">
-            {/* product name */}
             <h3 className="font-medium text-gray-900">
               Aura Floral Lace Long Dress
             </h3>
-            {/* product size */}
             <p className="text-sm text-gray-500">XS</p>
           </div>
         </div>
 
         {/* Order Summary */}
         <div className="space-y-4 border-t pt-4">
-          {/* subTotol amount */}
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Subtotal</span>
             <span className="font-medium">Rs 49,750.00</span>
           </div>
-          {/* shipping amount */}
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Shipping</span>
             <span className="font-medium text-green-600">Free</span>
           </div>
-          {/* total amount */}
           <div className="flex justify-between text-lg font-semibold py-2">
             <span>Total</span>
             <span>Rs 49,750.00</span>
@@ -528,22 +499,20 @@ const CheckoutPage = () => {
     <div className="min-h-auto bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column -  Form  section*/}
+          {/* Left Column - Form section */}
           {contactInfo}
-          {/* -------------------------- */}
 
           {/* Right Column - Order Summary */}
           {orderDetails}
-          {/* -------------------------- */}
         </div>
       </div>
 
-      {/* Enjoy a discount on your first purchase! */}
+      {/* Discount Modal */}
       <DiscountModal
         show={showModal}
         onClose={handleClose}
         onSubmit={handleSubmitDiscount}
-        logoSrc="/header/header-logo.svg" // change here
+        logoSrc="/header/header-logo.svg"
         discountText="Enjoy 5% off on your first purchase"
         buttonText="CLAIM DISCOUNT"
       />
