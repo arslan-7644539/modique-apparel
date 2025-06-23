@@ -5,8 +5,10 @@ import { createContext, useState } from "react";
 
 export const ProductsContext = createContext();
 export const ProductsProvider = ({ children }) => {
-  //  static data for products
-  
+  const [searchValue, setSearchValue] = useState("");
+  const filterProduct = productData?.filter((item) =>
+    item?.title.toLowerCase().includes(searchValue.toLowerCase())
+  );
 
   const particulatProduct = (productId) => {
     const product = productData.find((item) => item.id === productId);
@@ -19,7 +21,15 @@ export const ProductsProvider = ({ children }) => {
   };
 
   return (
-    <ProductsContext.Provider value={{ productData, particulatProduct }}>
+    <ProductsContext.Provider
+      value={{
+        productData,
+        particulatProduct,
+        filterProduct,
+        searchValue,
+        setSearchValue,
+      }}
+    >
       {children}
     </ProductsContext.Provider>
   );

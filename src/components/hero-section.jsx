@@ -40,7 +40,7 @@ const HeroSection = () => {
   // ];
   // Importing the ProductsContext to access product data
   // This context should be provided higher in the component tree
-  const { productData } = useContext(ProductsContext);
+  const { filterProduct, productData } = useContext(ProductsContext);
   // console.log("🚀 ~ HeroSection ~ productData:", productData);
 
   const handleAddToCart = (product) => {
@@ -54,8 +54,8 @@ const HeroSection = () => {
   return (
     <div className="min-w-[320px] w-full max-w-[1440px] mx-auto h-auto bg-white flex flex-col gap-5 p-4">
       <ProductCard
-        products={productData}
-        // products={sampleProducts}
+        products={filterProduct}
+        // products={productData}
         title="NEW ARRIVALS"
         columns={4}
         onProductClick={handleProductClick}
@@ -69,8 +69,8 @@ const HeroSection = () => {
       {/* </Link> */}
       {/* --------------------------- */}
       <ProductCard
-        products={productData}
-        // products={sampleProducts}
+        products={filterProduct}
+        // products={productData}
         title="BEST SELLER"
         columns={4}
         onProductClick={handleProductClick}

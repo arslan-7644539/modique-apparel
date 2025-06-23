@@ -8,7 +8,7 @@ import { ProductsContext } from "@/components/context/product-provider";
 
 const ProductListingPage = () => {
   // Importing the ProductsContext to access product data
-    const { productData } = useContext(ProductsContext);
+  const { productData, filterProduct } = useContext(ProductsContext);
   // Extracting the title from the URL parameters
   const params = useParams();
   const rawTitle = params.title;
@@ -173,7 +173,8 @@ const ProductListingPage = () => {
         {/* Product Grid */}
         <div className="flex-1 p-6">
           <ProductCard
-            products={productData}
+            products={filterProduct}
+            // products={productData}
             columns={3}
             onProductClick={handleProductClick}
             onAddToCart={handleAddToCart}
