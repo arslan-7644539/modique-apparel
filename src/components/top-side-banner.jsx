@@ -5,8 +5,7 @@ import BannerSection from "./sections/BannerSection";
 const TopBanner = () => {
   const bannerData = [
     {
-      bgImage:
-        "https://img.drz.lazcdn.com/static/pk/p/11273d5a77afda2636ead0bf0f5d3687.jpg_2200x2200q80.jpg_.webp",
+      bgVideo: "/video/branding-video.mp4",
       //   bgImage: "/bannerSection/demo1.jpg",
       title: "BEST SELLER",
       buttonText: "EXPLORE ALL ITEMS",
@@ -28,6 +27,7 @@ const TopBanner = () => {
         {bannerData?.map((item, index) => (
           <BannerSection
             key={index}
+            bgVideo={item?.bgVideo} // public folder me video rakho
             bgImage={item?.bgImage} // public folder me image rakho
             title={item?.title}
             buttonText={item?.buttonText}

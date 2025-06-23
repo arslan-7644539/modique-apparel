@@ -2,6 +2,7 @@ import React from "react";
 
 const BannerSection = ({
   bgImage, // Background image URL
+  bgVideo, // Background video URL (optional)
   title, // Title text
   buttonText, // Button text
   onButtonClick, // Button click function (optional)
@@ -9,13 +10,29 @@ const BannerSection = ({
 }) => {
   return (
     <div
-      className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[90vh] bg-center bg-cover bg-no-repeat flex items-center justify-center text-white "
-      style={{
-        backgroundImage: `url(${bgImage})`,
-        backgroundPosition: "center center",
-        backgroundSize: "cover",
-      }}
+      className="relative w-full h-[50vh] sm:h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[90vh] bg-center bg-cover bg-no-repeat flex items-center justify-center text-white"
+      style={
+        !bgVideo
+          ? {
+              backgroundImage: `url(${bgImage})`,
+              backgroundPosition: "center center",
+              backgroundSize: "cover",
+            }
+          : {}
+      }
     >
+      {/* Background Video */}
+      {bgVideo && (
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          src={bgVideo}
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+      )}
+
       {/* Dark overlay for better text readability */}
       <div className="absolute inset-0 bg-black/30"></div>
 
