@@ -7,17 +7,61 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
 import { ProductsContext } from "@/components/context/product-provider";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 const CheckoutPage = () => {
+  const router = useRouter();
   const param = useParams();
   const id = param.id;
-  const { particulatProduct } = useContext(ProductsContext);
+  const { particulatProduct, selectedItem, setSelectedItem } =
+    useContext(ProductsContext);
   // -------------------------------
   const { enqueueSnackbar } = useSnackbar();
   const [showModal, setShowModal] = useState(false);
-  const [product, setProduct] = useState([]);
+  const [product, setProduct] = useState(null);
+  const [showData, setShowData] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   console.log("🚀 ~ CheckoutPage ~ product:", product);
+  console.log("🚀 ~ CheckoutPage ~ selectedItem:", selectedItem);
+
+  // ✅ NEW: Check for data in sessionStorage on page load
+  useEffect(() => {
+    const checkForStoredData = () => {
+      try {
+        // Check if we have stored checkout data
+        const storedCheckoutData = sessionStorage.getItem("checkoutData");
+
+        if (storedCheckoutData) {
+          const parsedData = JSON.parse(storedCheckoutData);
+          console.log("📦 Found stored checkout data:", parsedData);
+
+          // Check if stored data matches current URL param
+          if (
+            parsedData.itemId &&
+            parseInt(parsedData.itemId) === parseInt(id)
+          ) {
+            // Restore selectedItem in context
+            setSelectedItem(parsedData);
+            setShowData(true);
+            console.log("✅ Restored checkout data from storage");
+          } else {
+            console.log("❌ Stored data ID doesn't match URL param");
+            // Clear invalid stored data
+            sessionStorage.removeItem("checkoutData");
+          }
+        } else {
+          console.log("📭 No stored checkout data found");
+        }
+      } catch (error) {
+        console.error("Error reading stored data:", error);
+        sessionStorage.removeItem("checkoutData");
+      }
+      setIsLoading(false);
+    };
+
+    checkForStoredData();
+  }, [id, setSelectedItem]);
 
   // ------------------------------------------------------
   const schema = z
@@ -150,6 +194,9 @@ const CheckoutPage = () => {
         handleOpen();
       }
 
+      // ✅ Clear stored data after successful order
+      sessionStorage.removeItem("checkoutData");
+
       reset();
     } catch (error) {
       console.log("🚀 ~ onSubmit ~ error: Please try again", error);
@@ -165,32 +212,75 @@ const CheckoutPage = () => {
     setShowModal(false);
   };
 
-  // fetching the product details from context
+  // ✅ UPDATED: Product fetching with better logic
   useEffect(() => {
+    if (isLoading) return; // Wait for storage check to complete
+
     const getProduct = () => {
       try {
-        // setLoading(true);
         // Convert string ID to number
         const demoPruduct = particulatProduct(parseInt(id));
         console.log("🚀 ~ getProduct ~ demoPruduct:", demoPruduct);
-        // ✅ Check if product exists
+
+        // Check if product exists
         if (!demoPruduct) {
           console.warn("Product not found for ID:", id);
-          // Handle product not found case
+          setShowData(false);
+          return;
         }
+
         setProduct(demoPruduct);
-        // setLoading(false); // ✅ Set loading to false on success
+
+        // If we already have matching selectedItem (from storage or context), show data
+        if (
+          selectedItem?.itemId &&
+          parseInt(selectedItem.itemId) === parseInt(id)
+        ) {
+          setShowData(true);
+          console.log("✅ Using existing selectedItem data");
+        } else {
+          // ✅ NEW: If no selectedItem but product exists, redirect to product page
+          console.log("❌ No selectedItem data, redirecting to product page");
+          enqueueSnackbar("Please select product options first", {
+            variant: "warning",
+            autoHideDuration: 3000,
+          });
+          router.push(`/product/${id}`);
+        }
       } catch (error) {
         console.log("🚀 ~ getProduct ~ error:", error);
-        // setLoading(false);
+        setShowData(false);
       }
     };
 
     if (id) {
-      // ✅ Only run if ID exists
       getProduct();
     }
-  }, [id, particulatProduct]); // ✅ Include both dependencies
+  }, [id, particulatProduct, selectedItem, isLoading, router, enqueueSnackbar]);
+
+  // ✅ NEW: Save selectedItem to sessionStorage whenever it changes
+  useEffect(() => {
+    if (selectedItem?.itemId && selectedItem?.itemTitle) {
+      try {
+        sessionStorage.setItem("checkoutData", JSON.stringify(selectedItem));
+        console.log("💾 Saved checkout data to storage");
+      } catch (error) {
+        console.error("Error saving to storage:", error);
+      }
+    }
+  }, [selectedItem]);
+
+  // ✅ Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    );
+  }
 
   const contactInfo = (
     <FormProvider {...methods}>
@@ -489,26 +579,26 @@ const CheckoutPage = () => {
     </FormProvider>
   );
 
-  const orderDetails = (
+  const orderDetails = showData ? (
     <div className="bg-gray-100 rounded-lg p-6">
       <div className="p-6">
         {/* Product Item */}
         <div className="flex items-center space-x-4 mb-6">
           <div className="w-20 h-20 rounded-lg flex items-center justify-center relative">
             <img
-              src={product?.images?.[0]}
+              src={selectedItem?.image}
               alt="selected-product-image"
               className="w-full h-full object-cover rounded-lg"
             />
             <span className="absolute -top-2 -right-2 bg-gray-600/90 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              1
+              {selectedItem?.totalQuantity}
             </span>
           </div>
           <div className="flex-1">
             <h3 className="font-medium text-gray-900">
-              Aura Floral Lace Long Dress
+              {selectedItem?.itemTitle}
             </h3>
-            <p className="text-sm text-gray-500">XS</p>
+            <p className="text-sm text-gray-500">{selectedItem?.itemSize}</p>
           </div>
         </div>
 
@@ -516,7 +606,7 @@ const CheckoutPage = () => {
         <div className="space-y-4 border-t pt-4">
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Subtotal</span>
-            <span className="font-medium">{product?.price} </span>
+            <span className="font-medium">{selectedItem?.totalPrices}</span>
           </div>
           <div className="flex justify-between py-2">
             <span className="text-gray-600">Shipping</span>
@@ -524,8 +614,30 @@ const CheckoutPage = () => {
           </div>
           <div className="flex justify-between text-lg font-semibold py-2">
             <span>Total</span>
-            <span>{product?.price}</span>
+            <span>{selectedItem?.totalPrices}</span>
           </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="bg-gray-100 rounded-lg p-6">
+      <div className="p-6 text-center">
+        <div className="mb-4">
+          <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <span className="text-2xl text-gray-500">📦</span>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Product Selected
+          </h3>
+          <p className="text-gray-500 mb-4">
+            Please select a product and its options to proceed with checkout
+          </p>
+          <button
+            onClick={() => router.push(`/product/${id}`)}
+            className="bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors"
+          >
+            Go to Product Page
+          </button>
         </div>
       </div>
     </div>
