@@ -7,6 +7,7 @@ import { HiOutlineShoppingBag } from "react-icons/hi2";
 import { HiMiniUser } from "react-icons/hi2";
 import { useDispatch, useSelector } from "react-redux";
 import { clearSearchValue, setSearchValue } from "@/lib/features/productSlice";
+import Link from "next/link";
 
 const SidebarNavigation = () => {
   const dispatch = useDispatch();
@@ -15,7 +16,16 @@ const SidebarNavigation = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const menuItems = ["HOME", "BEST SELLERS", "SHOP ALL", "SALES", "TRACKING"];
+  const menuItems = [
+    { title: "HOME", route: "/" },
+    { title: "BEST SELLERS", route: "#" },
+
+    { title: "SHOP ALL", route: "#" },
+
+    { title: "SALES", route: "#" },
+
+    { title: "TRACKING", route: "#" },
+  ];
   const popularSearches = ["T-Shirts", "Hoodies", "Jeans"];
 
   // Handle popular search click
@@ -126,15 +136,16 @@ const SidebarNavigation = () => {
 
           {/* Navigation Items */}
           <nav className="mt-12">
-            <ul className="space-y-6">
-              {menuItems.map((item, index) => (
+            <ul className="space-y-4">
+              {menuItems.map(({ title, route }, index) => (
                 <li key={index}>
-                  <a
-                    href="#"
-                    className="block text-black font-normal leading-[100%] tracking-wider uppercase text-[20px] border-b border-gray-200 pb-2"
+                  <Link
+                    href={route}
+                    onClick={() => setSidebarOpen(false)}
+                    className="block text-black font-normal leading-[100%] tracking-wider uppercase text-[20px] border-b border-gray-200 pb-2 transition-colors duration-300  hover:bg-black/20"
                   >
-                    {item}
-                  </a>
+                    {title}
+                  </Link>
                 </li>
               ))}
             </ul>
