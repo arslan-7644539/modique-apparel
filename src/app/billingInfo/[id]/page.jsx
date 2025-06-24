@@ -9,6 +9,7 @@ import { useSnackbar } from "notistack";
 import { useParams, useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { clearSelectedItem, setProductItem } from "@/lib/features/productSlice"; // Adjust path as needed
+import Image from "next/image";
 
 const CheckoutPage = () => {
   const router = useRouter();
@@ -529,10 +530,11 @@ const CheckoutPage = () => {
         {/* Product Item */}
         <div className="flex items-center space-x-4 mb-6">
           <div className="w-20 h-20 rounded-lg flex items-center justify-center relative">
-            <img
-              src={selectedItem?.image}
+            <Image
+              src={selectedItem?.image || "/fallback-image.png"}
               alt="selected-product-image"
-              className="w-full h-full object-cover rounded-lg"
+              fill
+              className="object-cover rounded-lg"
             />
             <span className="absolute -top-2 -right-2 bg-gray-600/90 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
               {selectedItem?.totalQuantity}
