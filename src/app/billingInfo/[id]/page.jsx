@@ -1,69 +1,46 @@
 "use client";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, CreditCard, X } from "lucide-react";
 import DiscountModal from "@/components/DiscountModal";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useSnackbar } from "notistack";
-import { ProductsContext } from "@/components/context/product-provider";
 import { useParams, useRouter } from "next/navigation";
+import { useSelector, useDispatch } from "react-redux";
+import { clearSelectedItem, setProductItem } from "@/lib/features/productSlice"; // Adjust path as needed
 
 const CheckoutPage = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const param = useParams();
   const id = param.id;
-  const { particulatProduct, selectedItem, setSelectedItem } =
-    useContext(ProductsContext);
-  // -------------------------------
+
+  // Redux selectors
+  const productData = useSelector((state) =>
+    state.product.productData.find((item) => item.id === parseInt(id))
+  );
+  const selectedItem = useSelector((state) => state.product.setSelectedItem);
+
+  // console.log("🚀 ~ CheckoutPage ~ productData:", productData);
+  // console.log("🚀 ~ CheckoutPage ~ selectedItem:", selectedItem);
+
+  // Local state
   const { enqueueSnackbar } = useSnackbar();
   const [showModal, setShowModal] = useState(false);
-  const [product, setProduct] = useState(null);
   const [showData, setShowData] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
-  console.log("🚀 ~ CheckoutPage ~ product:", product);
-  console.log("🚀 ~ CheckoutPage ~ selectedItem:", selectedItem);
+  // Check if we have valid selected item data
+  const hasValidSelectedItem = useMemo(() => {
+    return (
+      selectedItem?.itemId &&
+      selectedItem?.itemTitle &&
+      parseInt(selectedItem.itemId) === parseInt(id)
+    );
+  }, [selectedItem, id]);
 
-  // ✅ NEW: Check for data in sessionStorage on page load
-  useEffect(() => {
-    const checkForStoredData = () => {
-      try {
-        // Check if we have stored checkout data
-        const storedCheckoutData = sessionStorage.getItem("checkoutData");
-
-        if (storedCheckoutData) {
-          const parsedData = JSON.parse(storedCheckoutData);
-          console.log("📦 Found stored checkout data:", parsedData);
-
-          // Check if stored data matches current URL param
-          if (
-            parsedData.itemId &&
-            parseInt(parsedData.itemId) === parseInt(id)
-          ) {
-            // Restore selectedItem in context
-            setSelectedItem(parsedData);
-            setShowData(true);
-            console.log("✅ Restored checkout data from storage");
-          } else {
-            console.log("❌ Stored data ID doesn't match URL param");
-            // Clear invalid stored data
-            sessionStorage.removeItem("checkoutData");
-          }
-        } else {
-          console.log("📭 No stored checkout data found");
-        }
-      } catch (error) {
-        console.error("Error reading stored data:", error);
-        sessionStorage.removeItem("checkoutData");
-      }
-      setIsLoading(false);
-    };
-
-    checkForStoredData();
-  }, [id, setSelectedItem]);
-
-  // ------------------------------------------------------
+  // Form schema
   const schema = z
     .object({
       email: z.string().email("Invalid email address"),
@@ -80,7 +57,6 @@ const CheckoutPage = () => {
         ),
       city: z.string().min(1, "City is required"),
       postalCode: z.string().min(1, "Postal code is required"),
-      // for payment method
       paymentMethod: z.enum(["cod", "card"], {
         required_error: "Please select a payment method",
       }),
@@ -89,7 +65,6 @@ const CheckoutPage = () => {
       securityCode: z.string().optional(),
       nameOnCard: z.string().optional(),
     })
-    // Card Number validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
@@ -102,7 +77,6 @@ const CheckoutPage = () => {
         path: ["cardNumber"],
       }
     )
-    // Expiry Date validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
@@ -115,7 +89,6 @@ const CheckoutPage = () => {
         path: ["expiryDate"],
       }
     )
-    // Security Code validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
@@ -128,7 +101,6 @@ const CheckoutPage = () => {
         path: ["securityCode"],
       }
     )
-    // Name on Card validation
     .refine(
       (data) => {
         if (data.paymentMethod === "card") {
@@ -179,8 +151,9 @@ const CheckoutPage = () => {
 
   const watchedPaymentMethod = watch("paymentMethod");
 
+  // Form submission handler
   const onSubmit = async (data) => {
-    debugger;
+    setIsProcessingOrder(true);
 
     try {
       console.log("Form is submitted", data);
@@ -190,19 +163,25 @@ const CheckoutPage = () => {
         autoHideDuration: 3000,
       });
 
-      if (data.paymentMethod === "card") {
-        handleOpen();
-      }
+      // if paymentMethod is qual "card" then show discount handle model
 
-      // ✅ Clear stored data after successful order
-      sessionStorage.removeItem("checkoutData");
+      // if (data.paymentMethod === "card") {
+      //   handleOpen();
+      // }
 
       reset();
+
+      // Clear selected item and redirect after a short delay
+      setTimeout(() => {
+        dispatch(clearSelectedItem());
+        router.push("/"); // or router.push("/order-success")
+      }, 2000);
     } catch (error) {
       console.log("🚀 ~ onSubmit ~ error: Please try again", error);
       enqueueSnackbar("Error occurred. Please try again", {
         variant: "error",
       });
+      setIsProcessingOrder(false);
     }
   };
 
@@ -212,75 +191,40 @@ const CheckoutPage = () => {
     setShowModal(false);
   };
 
-  // ✅ UPDATED: Product fetching with better logic
+  // Check for valid product and selected item on component mount
   useEffect(() => {
-    if (isLoading) return; // Wait for storage check to complete
+    // Don't redirect if we're processing an order
+    if (isProcessingOrder) return;
 
-    const getProduct = () => {
-      try {
-        // Convert string ID to number
-        const demoPruduct = particulatProduct(parseInt(id));
-        console.log("🚀 ~ getProduct ~ demoPruduct:", demoPruduct);
-
-        // Check if product exists
-        if (!demoPruduct) {
-          console.warn("Product not found for ID:", id);
-          setShowData(false);
-          return;
-        }
-
-        setProduct(demoPruduct);
-
-        // If we already have matching selectedItem (from storage or context), show data
-        if (
-          selectedItem?.itemId &&
-          parseInt(selectedItem.itemId) === parseInt(id)
-        ) {
-          setShowData(true);
-          console.log("✅ Using existing selectedItem data");
-        } else {
-          // ✅ NEW: If no selectedItem but product exists, redirect to product page
-          console.log("❌ No selectedItem data, redirecting to product page");
-          enqueueSnackbar("Please select product options first", {
-            variant: "warning",
-            autoHideDuration: 3000,
-          });
-          router.push(`/product/${id}`);
-        }
-      } catch (error) {
-        console.log("🚀 ~ getProduct ~ error:", error);
-        setShowData(false);
-      }
-    };
-
-    if (id) {
-      getProduct();
+    if (!productData) {
+      console.warn("Product not found for ID:", id);
+      enqueueSnackbar("Product not found", {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+      router.push("/");
+      return;
     }
-  }, [id, particulatProduct, selectedItem, isLoading, router, enqueueSnackbar]);
 
-  // ✅ NEW: Save selectedItem to sessionStorage whenever it changes
-  useEffect(() => {
-    if (selectedItem?.itemId && selectedItem?.itemTitle) {
-      try {
-        sessionStorage.setItem("checkoutData", JSON.stringify(selectedItem));
-        console.log("💾 Saved checkout data to storage");
-      } catch (error) {
-        console.error("Error saving to storage:", error);
-      }
+    if (hasValidSelectedItem) {
+      setShowData(true);
+      console.log("✅ Valid selectedItem data found");
+    } else {
+      console.log("❌ No valid selectedItem data, redirecting to product page");
+      enqueueSnackbar("Please select product options first", {
+        variant: "warning",
+        autoHideDuration: 3000,
+      });
+      router.push(`/productDetail/${id}`);
     }
-  }, [selectedItem]);
-
-  // ✅ Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading checkout...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [
+    id,
+    productData,
+    hasValidSelectedItem,
+    router,
+    enqueueSnackbar,
+    isProcessingOrder,
+  ]);
 
   const contactInfo = (
     <FormProvider {...methods}>

@@ -1,23 +1,35 @@
 "use client";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react"; // CHANGE: useContext removed
 import axios from "axios";
 import { ChevronDown } from "lucide-react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import Link from "next/link";
-import { ProductsContext } from "@/components/context/product-provider";
+// CHANGE: ProductsContext import removed
 import { formatOriginalPrice, formatPrice } from "@/utils/utils";
+import { useDispatch, useSelector } from "react-redux";
+import { setProductItem } from "@/lib/features/productSlice";
 
 const ProductDetailPage = () => {
-  const { particulatProduct, setSelectedItem } = useContext(ProductsContext);
+
 
   const param = useParams();
   const id = param.id;
-  console.log("🚀 ~ ProductDetailPage ~ id:", id);
+  // console.log("🚀 ~ ProductDetailPage ~ id:", id);
+
+  // Redux dispatcher and selector - remains the same
+  const dispatch = useDispatch();
+
+  // Get product data from Redux - remains the same
+  const productData = useSelector((state) =>
+    state.product.productData.find((item) => item.id === parseInt(id))
+  );
+
+  // console.log("🚀 ~ ProductDetailPage ~ productData:", productData);
 
   const [product, setProduct] = useState(null);
-  console.log("🚀 ~ ProductDetailPage ~ product:", product);
+  // console.log("🚀 ~ ProductDetailPage ~ product:", product);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedPiece, setSelectedPiece] = useState("2-piece");
@@ -33,6 +45,8 @@ const ProductDetailPage = () => {
     exchange2: false,
     exchange3: false,
   });
+
+
 
   // Function to extract price value from price string
   const extractPriceValue = (priceString) => {
@@ -50,7 +64,7 @@ const ProductDetailPage = () => {
       const match = priceString.toString().match(pattern);
       if (match) {
         const price = parseInt(match[1].replace(/,/g, ""));
-        console.log("🔍 Extracted price:", price, "from:", priceString);
+        // console.log("🔍 Extracted price:", price, "from:", priceString);
         return price;
       }
     }
@@ -63,24 +77,24 @@ const ProductDetailPage = () => {
   const calculatePrice = () => {
     if (!product) return 0;
 
-    console.log("🔍 Product price structure:", product.price);
-    console.log("🔍 Selected piece:", selectedPiece);
+    // console.log("🔍 Product price structure:", product.price);
+    // console.log("🔍 Selected piece:", selectedPiece);
 
-    // 🔥 UPDATED: Handle object-based pricing (multiple pieces)
+    // UPDATED: Handle object-based pricing (multiple pieces)
     if (product?.price && typeof product?.price === "object") {
       const priceKey = selectedPiece.replace("-", "_");
-      console.log("🔍 Price key:", priceKey);
-      console.log("🔍 Price value for key:", product.price[priceKey]);
+      // console.log("🔍 Price key:", priceKey);
+      // console.log("🔍 Price value for key:", product.price[priceKey]);
 
       const extractedPrice = extractPriceValue(product.price[priceKey]);
-      console.log("🔍 Extracted price:", extractedPrice);
+      // console.log("🔍 Extracted price:", extractedPrice);
       return extractedPrice;
     }
 
-    // 🔥 UPDATED: Handle simple string/number pricing
+    // UPDATED: Handle simple string/number pricing
     if (product?.price) {
       const basePrice = extractPriceValue(product.price);
-      console.log("🚀 ~ calculatePrice ~ basePrice:", basePrice);
+      // console.log("🚀 ~ calculatePrice ~ basePrice:", basePrice);
 
       // Only add piece price if product actually has piece options
       if (hasPieceOptions()) {
@@ -98,13 +112,13 @@ const ProductDetailPage = () => {
   const calculateOriginalPrice = () => {
     if (!product) return 0;
 
-    // 🔥 UPDATED: Handle object-based original pricing
+    // UPDATED: Handle object-based original pricing
     if (product.originalPrice && typeof product.originalPrice === "object") {
       const priceKey = selectedPiece.replace("-", "_");
       return extractPriceValue(product.originalPrice[priceKey]);
     }
 
-    // 🔥 UPDATED: Handle simple string/number original pricing
+    // UPDATED: Handle simple string/number original pricing
     if (product.originalPrice) {
       const baseOriginalPrice = extractPriceValue(product.originalPrice);
 
@@ -127,17 +141,17 @@ const ProductDetailPage = () => {
   const hasPieceOptions = () => {
     if (!product) return false;
 
-    // 🔥 UPDATED: Check for object-based piece pricing
+    // UPDATED: Check for object-based piece pricing
     if (product.price && typeof product.price === "object") {
       return product.price["2_piece"] && product.price["3_piece"];
     }
 
-    // 🔥 NEW: For simple pricing, no piece options by default
+    // NEW: For simple pricing, no piece options by default
     return false;
   };
 
-  // 🔥 NEW: Centralized function to update context with current state
-  const updateContextState = (
+  // CHANGE: Simplified update function for Redux
+  const updateReduxState = (
     newQuantity = quantity,
     newSize = selectedSize,
     newPiece = selectedPiece
@@ -148,56 +162,59 @@ const ProductDetailPage = () => {
     const finalPrice = isNaN(calculatedPrice) ? 0 : calculatedPrice;
     const totalPrice = finalPrice * newQuantity;
 
-    console.log("🔍 Updating context with:", {
-      quantity: newQuantity,
-      size: newSize,
-      piece: newPiece,
-      unitPrice: finalPrice,
-      totalPrice: totalPrice,
-    });
+    // console.log("🔍 Updating Redux with:", {
+    //   quantity: newQuantity,
+    //   size: newSize,
+    //   piece: newPiece,
+    //   unitPrice: finalPrice,
+    //   totalPrice: totalPrice,
+    // });
 
-    setSelectedItem({
+    // CHANGE: Only dispatching to Redux, not updating local state
+    const updatedItem = {
       image: product?.images?.[selectedImage] || "",
       itemTitle: product?.title || "",
       totalQuantity: newQuantity.toString(),
       totalPrices: totalPrice.toLocaleString(),
       itemSize: newSize || "XS",
       itemId: product?.id?.toString() || "",
-      selectedPiece: newPiece, // 🔥 NEW: Added piece info to context
-      unitPrice: finalPrice.toLocaleString(), // 🔥 NEW: Added unit price for reference
-    });
+      selectedPiece: newPiece,
+      unitPrice: finalPrice.toLocaleString(),
+    };
+    // console.log("🚀 ~ ProductDetailPage ~ updatedItem:", updatedItem)
+
+    // CHANGE: Only dispatching to Redux
+    dispatch(setProductItem(updatedItem));
   };
 
-  // 🔥 UPDATED: Simplified quantity functions that use centralized update
+  // CHANGE: Function names updated - for Redux
   const increaseQuantity = () => {
     const newQuantity = quantity + 1;
     setQuantity(newQuantity);
-    updateContextState(newQuantity); // 🔥 NEW: Use centralized update
+    updateReduxState(newQuantity); // CHANGE: updateContextState to updateReduxState
   };
 
   const decreaseQuantity = () => {
     const newQuantity = quantity > 1 ? quantity - 1 : 1;
     setQuantity(newQuantity);
-    updateContextState(newQuantity); // 🔥 NEW: Use centralized update
+    updateReduxState(newQuantity); // CHANGE: updateContextState to updateReduxState
   };
 
-  // 🔥 NEW: Effect to update context whenever relevant state changes
+  // CHANGE: Using Redux update function in effect
   useEffect(() => {
     if (product && selectedSize) {
-      updateContextState();
+      updateReduxState();
     }
-  }, [selectedPiece, selectedImage]); // 🔥 NEW: Auto-update when piece or image changes
+  }, [selectedPiece, selectedImage]);
 
   useEffect(() => {
     const getProduct = () => {
       try {
         setLoading(true);
-        const demoPruduct = particulatProduct(parseInt(id));
-
-        if (!demoPruduct) {
+        if (!productData) {
           console.warn("Product not found for ID:", id);
         }
-        setProduct(demoPruduct);
+        setProduct(productData);
         setLoading(false);
       } catch (error) {
         console.log("🚀 ~ getProduct ~ error:", error);
@@ -208,7 +225,7 @@ const ProductDetailPage = () => {
     if (id) {
       getProduct();
     }
-  }, [id, particulatProduct]);
+  }, [id, productData]);
 
   const toggleSection = (section) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -308,7 +325,7 @@ const ProductDetailPage = () => {
   };
 
   const productCheckOut = () => {
-    // 🔥 NEW: Calculate real-time price for checkout display
+    // NEW: Calculate real-time price for checkout display
     const currentPrice = calculatePrice();
     const totalPrice = isNaN(currentPrice) ? 0 : currentPrice * quantity;
 
@@ -375,7 +392,7 @@ const ProductDetailPage = () => {
                       {selectedPiece}
                     </p>
                   )}
-                  {/* 🔥 UPDATED: Real-time price display */}
+                  {/* UPDATED: Real-time price display */}
                   <div className="mb-3">
                     <p className="text-sm text-gray-600">
                       Unit Price: {currentPrice.toLocaleString()}
@@ -474,8 +491,8 @@ const ProductDetailPage = () => {
                   key={index}
                   onClick={() => {
                     setSelectedPiece(item);
-                    // 🔥 UPDATED: Use centralized update function
-                    updateContextState(quantity, selectedSize, item);
+                    // CHANGE: updateContextState to updateReduxState
+                    updateReduxState(quantity, selectedSize, item);
                   }}
                   className={`flex-1 py-3 px-4 border rounded-lg text-sm font-medium transition-colors ${
                     selectedPiece === item
@@ -503,8 +520,8 @@ const ProductDetailPage = () => {
                 key={size}
                 onClick={() => {
                   setSelectedSize(size);
-                  // 🔥 UPDATED: Use centralized update function
-                  updateContextState(quantity, size, selectedPiece);
+                  // CHANGE: updateContextState to updateReduxState
+                  updateReduxState(quantity, size, selectedPiece);
                 }}
                 className={`w-12 h-12 border rounded-lg text-sm font-medium transition-colors ${
                   selectedSize === size
@@ -520,8 +537,8 @@ const ProductDetailPage = () => {
 
         <button
           onClick={() => {
-            // 🔥 UPDATED: Simplified - context is already updated, just open sidebar
-            updateContextState(); // Ensure latest state is in context
+            // CHANGE: Updating Redux state
+            updateReduxState();
             setSidebarOpen(true);
           }}
           className="w-full bg-black text-white py-4 hover:bg-gray-800 mb-8 transition-colors"

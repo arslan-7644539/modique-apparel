@@ -5,10 +5,12 @@ import { IoMdClose } from "react-icons/io";
 import { IoIosSearch } from "react-icons/io";
 import { HiOutlineShoppingBag } from "react-icons/hi2";
 import { HiMiniUser } from "react-icons/hi2";
-import { ProductsContext } from "./context/product-provider";
+import { useDispatch, useSelector } from "react-redux";
+import { clearSearchValue, setSearchValue } from "@/lib/features/productSlice";
 
 const SidebarNavigation = () => {
-  const { searchValue, setSearchValue } = useContext(ProductsContext);
+  const dispatch = useDispatch();
+  const { searchValue } = useSelector((state) => state.product);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -33,7 +35,7 @@ const SidebarNavigation = () => {
 
   // Handle close button click - clear search and close
   const handleCloseSearch = () => {
-    setSearchValue("");
+    dispatch(clearSearchValue());
     setSearchOpen(false);
   };
 
@@ -57,7 +59,7 @@ const SidebarNavigation = () => {
               <form onSubmit={handleSearchSubmit} className="p-6">
                 <div className="relative">
                   <input
-                    onChange={(e) => setSearchValue(e.target.value)}
+                    onChange={(e) => dispatch(setSearchValue(e.target.value))}
                     value={searchValue}
                     type="text"
                     placeholder="Search products, brands, categories..."
