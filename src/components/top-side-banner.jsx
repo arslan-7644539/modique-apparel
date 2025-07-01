@@ -7,9 +7,9 @@ const TopBanner = () => {
     {
       bgVideo: "/video/branding-video.mp4",
       //   bgImage: "/bannerSection/demo1.jpg",
-      title: "BEST SELLER",
-      buttonText: "EXPLORE ALL ITEMS",
-      onButtonClick: () => console.log("Best Seller clicked!"),
+      // title: "BEST SELLER",
+      // buttonText: "EXPLORE ALL ITEMS",
+      // onButtonClick: () => console.log("Best Seller clicked!"),
     },
     {
       bgImage:

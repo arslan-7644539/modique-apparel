@@ -1,4 +1,4 @@
-export const productData = [
+const productItem = [
   {
     id: 1,
     title: "Aqua Grace – 3 Piece Chikankari Lawn Coord Set",
@@ -218,3 +218,7 @@ export const productData = [
     sizes: ["XS", "S", "M", "L", "XL"],
   },
 ];
+
+const productData = productItem.reverse();
+
+export { productData };

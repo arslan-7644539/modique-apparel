@@ -10,10 +10,9 @@ import Link from "next/link";
 import { formatOriginalPrice, formatPrice } from "@/utils/utils";
 import { useDispatch, useSelector } from "react-redux";
 import { setProductItem } from "@/lib/features/productSlice";
+import { enqueueSnackbar } from "notistack";
 
 const ProductDetailPage = () => {
-
-
   const param = useParams();
   const id = param.id;
   // console.log("🚀 ~ ProductDetailPage ~ id:", id);
@@ -31,7 +30,7 @@ const ProductDetailPage = () => {
   const [product, setProduct] = useState(null);
   // console.log("🚀 ~ ProductDetailPage ~ product:", product);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedSize, setSelectedSize] = useState("XS");
   const [selectedPiece, setSelectedPiece] = useState("2-piece");
   const [sortBy, setSortBy] = useState("");
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -45,8 +44,6 @@ const ProductDetailPage = () => {
     exchange2: false,
     exchange3: false,
   });
-
-
 
   // Function to extract price value from price string
   const extractPriceValue = (priceString) => {
@@ -162,15 +159,6 @@ const ProductDetailPage = () => {
     const finalPrice = isNaN(calculatedPrice) ? 0 : calculatedPrice;
     const totalPrice = finalPrice * newQuantity;
 
-    // console.log("🔍 Updating Redux with:", {
-    //   quantity: newQuantity,
-    //   size: newSize,
-    //   piece: newPiece,
-    //   unitPrice: finalPrice,
-    //   totalPrice: totalPrice,
-    // });
-
-    // CHANGE: Only dispatching to Redux, not updating local state
     const updatedItem = {
       image: product?.images?.[selectedImage] || "",
       itemTitle: product?.title || "",
@@ -229,6 +217,148 @@ const ProductDetailPage = () => {
 
   const toggleSection = (section) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const generateWhatsAppMessage = () => {
+    if (!product) return "Product not found";
+
+    const currentPrice = calculatePrice();
+    const originalPrice = calculateOriginalPrice();
+    const totalPrice = currentPrice * quantity;
+    const discount =
+      originalPrice > currentPrice ? originalPrice - currentPrice : 0;
+    const discountPercentage =
+      originalPrice > 0 ? Math.round((discount / originalPrice) * 100) : 0;
+
+    let message = `🛍️ *ORDER DETAILS*\n\n`;
+
+    // Product Info
+    message += `📦 *Product:* ${product.title}\n`;
+    message += `🏷️ *SKU/ID:* ${product.id}\n`;
+
+    // Size and Piece Selection
+    message += `📏 *Size:* ${selectedSize || "Not selected"}\n`;
+    if (hasPieceOptions()) {
+      message += `👗 *Pieces:* ${selectedPiece}\n`;
+    }
+
+    // Pricing Details
+    message += `\n💰 *PRICING*\n`;
+    message += `• Unit Price: PKR ${currentPrice.toLocaleString()}\n`;
+    if (originalPrice > currentPrice) {
+      message += `• Original Price: ~~PKR ${originalPrice.toLocaleString()}~~\n`;
+      message += `• Discount: ${discountPercentage}% OFF (Save PKR ${discount.toLocaleString()})\n`;
+    }
+    message += `• Quantity: ${quantity}\n`;
+    message += `• *Total Amount: PKR ${totalPrice.toLocaleString()}*\n\n`;
+
+    // Product Description (if available)
+    if (product.description) {
+      message += `📝 *Description:* ${product.description.substring(0, 100)}${
+        product.description.length > 100 ? "..." : ""
+      }\n`;
+    }
+
+    // Fabric Info (if available)
+    if (product.fabric) {
+      message += `🧵 *Fabric:* ${product.fabric}\n`;
+    }
+
+    message += `\n📞 *I would like to place this order. Please confirm availability and provide delivery details.*\n\n`;
+    message += `🚚 *Delivery Information Needed:*\n`;
+    message += `• Full Name\n`;
+    message += `• Complete Address\n`;
+    message += `• Phone Number\n`;
+    message += `• Preferred Delivery Time\n\n`;
+    message += `Thank you! 😊`;
+
+    return message;
+  };
+
+  // Updated sendToWhatsApp function with better error handling
+  const sendToWhatsApp = () => {
+    // Validation checks
+    if (!product) {
+      enqueueSnackbar("Please select a product first", {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+      return;
+    }
+
+    if (!selectedSize) {
+      enqueueSnackbar("Please select a size before ordering", {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+      return;
+    }
+
+    // Check if piece selection is required but not made
+    if (hasPieceOptions() && !selectedPiece) {
+      enqueueSnackbar("Please select the number of pieces", {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+      return;
+    }
+
+    try {
+      const phoneNumber = "923267644539"; // Your WhatsApp number
+      const message = generateWhatsAppMessage();
+      const encodedMessage = encodeURIComponent(message);
+
+      // Create WhatsApp URL
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+      // Open WhatsApp in new tab/window
+      const newWindow = window.open(whatsappUrl, "_blank");
+
+      // Fallback if popup blocker prevents opening
+      if (!newWindow) {
+        // Copy message to clipboard as fallback
+        navigator.clipboard
+          .writeText(message)
+          .then(() => {
+            alert(
+              "WhatsApp couldn't open automatically. Order details copied to clipboard. Please paste in WhatsApp manually."
+            );
+          })
+          .catch(() => {
+            alert(
+              "Please allow popups for this site or copy the order details manually."
+            );
+          });
+      }
+    } catch (error) {
+      console.error("Error sending to WhatsApp:", error);
+      alert("There was an error processing your order. Please try again.");
+    }
+  };
+
+  // Alternative function for copying order details to clipboard
+  const copyOrderToClipboard = async () => {
+    try {
+      const message = generateWhatsAppMessage();
+      await navigator.clipboard.writeText(message);
+      enqueueSnackbar(
+        "Order details copied to clipboard! You can now paste it in WhatsApp.",
+        {
+          variant: "success",
+          autoHideDuration: 3000,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = generateWhatsAppMessage();
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      alert("Order details copied to clipboard!");
+    }
   };
 
   const sortOptions = [
@@ -535,7 +665,7 @@ const ProductDetailPage = () => {
           </div>
         </div>
 
-        <button
+        {/* <button
           onClick={() => {
             // CHANGE: Updating Redux state
             updateReduxState();
@@ -544,10 +674,46 @@ const ProductDetailPage = () => {
           className="w-full bg-black text-white py-4 hover:bg-gray-800 mb-8 transition-colors"
         >
           ADD TO BAG
-        </button>
+        </button> */}
+
+        {/* send order via Whatsapp */}
+        <div className="flex gap-3 mb-8">
+          <button
+            onClick={() => {
+              sendToWhatsApp();
+              updateReduxState();
+            }}
+            className="flex-1 bg-green-500 text-white py-4 hover:bg-green-600 transition-colors font-medium rounded-lg flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488" />
+            </svg>
+            Order via WhatsApp
+          </button>
+
+          <button
+            onClick={copyOrderToClipboard}
+            className="px-4 py-4 border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg"
+            title="Copy order details"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
+            </svg>
+          </button>
+        </div>
 
         <div className="border-t border-gray-200">
-          {["details", "exchange1", "exchange2", "exchange3"].map((section) => (
+          {["details"].map((section) => (
             <div key={section} className="border-b border-gray-200">
               <button
                 onClick={() => toggleSection(section)}
@@ -573,7 +739,7 @@ const ProductDetailPage = () => {
                       </p>
                     </>
                   )}
-                  {section === "exchange1" && (
+                  {/* {section === "exchange1" && (
                     <p>Exchange within 7 days. Contact customer service.</p>
                   )}
                   {section === "exchange2" && (
@@ -581,7 +747,7 @@ const ProductDetailPage = () => {
                   )}
                   {section === "exchange3" && (
                     <p>30 days easy return with original packaging.</p>
-                  )}
+                  )} */}
                 </div>
               )}
             </div>

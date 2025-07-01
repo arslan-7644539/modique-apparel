@@ -113,17 +113,36 @@ const ProductCard = ({
               </div>
 
               {/* Price Section */}
-              <div className="flex items-center gap-2">
-                <span className="text-black font-bold text-sm md:text-base">
-                  {formatPrice(product?.price)}
-                </span>
-                {product?.originalPrice &&
-                  formatOriginalPrice(product?.originalPrice) && (
+              {product?.price && typeof product.price === "object" ? (
+                Object.entries(product.price).map(
+                  ([label, price], idx, arr) => (
+                    <div key={idx} className="flex flex-col items-center">
+                      <span className="text-black font-bold text-sm md:text-base">
+                        {label}: {formatPrice(price)}
+                      </span>
+
+                      {/* Show original price if it exists */}
+                      {product.originalPrice?.[label] && (
+                        <span className="text-gray-500 line-through text-xs">
+                          {label}:{" "}
+                          {formatOriginalPrice(product.originalPrice[label])}
+                        </span>
+                      )}
+                    </div>
+                  )
+                )
+              ) : (
+                <div className="flex flex-col items-center">
+                  <span className="text-black font-bold text-sm md:text-base">
+                    {formatPrice(product?.price)}
+                  </span>
+                  {product?.originalPrice && (
                     <span className="text-gray-500 line-through text-xs">
-                      {formatOriginalPrice(product?.originalPrice)}
+                      {formatOriginalPrice(product.originalPrice)}
                     </span>
                   )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         ))}

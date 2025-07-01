@@ -34,7 +34,7 @@ const BannerSection = ({
       )}
 
       {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/30"></div>
+      {!bgVideo && <div className="absolute inset-0 bg-black/30"></div>}
 
       {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
