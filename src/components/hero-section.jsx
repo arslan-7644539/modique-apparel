@@ -1,8 +1,8 @@
 "use client";
 import React, { useContext } from "react";
-import ProductCard from "./sections/ProductCard";
 import Link from "next/link";
 import { useSelector } from "react-redux";
+import ProductCard from "./sections/ProductCard";
 
 const HeroSection = () => {
   const productData = useSelector((state) => state.product.productData);
