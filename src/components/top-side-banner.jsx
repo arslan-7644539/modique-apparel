@@ -2,6 +2,7 @@
 import React from "react";
 import BannerSection from "./sections/BannerSection";
 
+
 const TopBanner = () => {
   const bannerData = [
     {

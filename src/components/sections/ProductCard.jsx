@@ -22,7 +22,7 @@ const ProductCard = ({
   };
   const router = useRouter();
   const navigateToDetailPage = (id) => {
-    router.push(`/productDetail/${id}`);
+    router.push(`/main/productDetail/${id}`);
   };
 
   // Main container with optional title section
@@ -33,7 +33,7 @@ const ProductCard = ({
           <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 ">
             {title}
           </h2>
-          <Link href={`/productCollection/${title}`}>
+          <Link href={`/main/productCollection/${title}`}>
             <button
               // title="View All "
               className="text-xl sm:text-2xl font-mono text-gray-800 mb-2 hover:underline cursor-pointer"

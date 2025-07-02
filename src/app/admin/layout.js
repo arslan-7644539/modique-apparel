@@ -1,12 +1,13 @@
-// import DashboardHeader from "@/components/admin/dashboardHeader/DashboardHeader";
+// app/admin/layout.js
 
 import DashboardHeader from "@/components/admin/dashbordHeader/DashbordHeader";
 
 export const metadata = {
-  title: "Admin Panel",
+  title: "Admin | Dashboard",
+  description: "My awesome Next.js App",
 };
 
-export default function DashboardLayout({ children }) {
+export default function AdminLayout({ children }) {
   return (
     <>
       <DashboardHeader />

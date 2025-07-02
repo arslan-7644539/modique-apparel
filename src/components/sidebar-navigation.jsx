@@ -8,13 +8,17 @@ import { HiMiniUser } from "react-icons/hi2";
 import { useDispatch, useSelector } from "react-redux";
 import { clearSearchValue, setSearchValue } from "@/lib/features/productSlice";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Register from "./auth/Register";
 
 const SidebarNavigation = () => {
+  const router = useRouter();
   const dispatch = useDispatch();
   const { searchValue } = useSelector((state) => state.product);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [loginClicked, setLoginClicked] = useState(false);
 
   const menuItems = [
     { title: "HOME", route: "/" },
@@ -54,6 +58,10 @@ const SidebarNavigation = () => {
     if (e.target === e.currentTarget) {
       setSearchOpen(false);
     }
+  };
+
+  const handleNavigate = () => {
+    router.push("/auth/register");
   };
 
   const SearchOverlay = () => {
@@ -192,7 +200,10 @@ const SidebarNavigation = () => {
                 <HiOutlineShoppingBag className="h-5 w-5" />
                 <span className="sr-only">Cart</span>
               </button>
-              <button className="text-gray-800 hover:bg-gray-100 p-2 rounded-full">
+              <button
+                onClick={handleNavigate}
+                className="text-gray-800 hover:bg-gray-100 p-2 rounded-full"
+              >
                 <HiMiniUser className="h-5 w-5" />
                 <span className="sr-only">User Account</span>
               </button>
@@ -223,6 +234,8 @@ const SidebarNavigation = () => {
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
         />
       )}
+      {/* ------------------------ */}
+      {loginClicked && <Register />}
     </>
   );
 };

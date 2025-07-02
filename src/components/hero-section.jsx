@@ -27,7 +27,7 @@ const HeroSection = () => {
       />
       {/* --------------------------- */}
       <Link
-        href={`/productCollection/${"NEW ARRIVALS"}`}
+        href={`/main/productCollection/${"NEW ARRIVALS"}`}
         className="block w-full text-center"
       >
         <button className="bg-black text-white w-full max-w-[267px] max-h-[68px] p-[10px] text-xs tracking-wide uppercase font-medium hover:bg-gray-900 hover:scale-105 hover:shadow-lg transition-all duration-300 ease-in-out mx-auto mb-3 mt-5">
